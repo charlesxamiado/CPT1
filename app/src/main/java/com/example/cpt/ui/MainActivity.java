@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -22,6 +23,8 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.example.cpt.R;
+import com.example.cpt.models.User;
+import com.example.cpt.models.UserLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -32,6 +35,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
 
@@ -42,43 +47,98 @@ import static com.example.cpt.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
 
 public class MainActivity extends AppCompatActivity {
 
-    //    coding with mitch variables
+//        coding with mitch variables
     private boolean mLocationPermissionGranted = false;
     private String TAG = "MainActivity";
-    Intent intent;
     private FusedLocationProviderClient mFusedLocationClient;
     private FirebaseFirestore mDb;
 
 //    firebase
     private FirebaseAuth.AuthStateListener mAuthListener;
 
-    // widgets
+//     widgets
     private EditText mEmail, mPassword;
     private ProgressBar mProgressBar;
+
+//    geolocation
+    private UserLocation mUserLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mDb = FirebaseFirestore.getInstance();
 
+//        sign in shits
+        mPassword = findViewById(R.id.password);
         setupFirebaseAuth();
         hideSoftKeyboard();
     }
 
+    private void getUserDetails(){
+        if(mUserLocation == null){
+            mUserLocation = new UserLocation();
+            DocumentReference userRef = mDb.collection(getString(R.string.collection_users))
+                    .document(FirebaseAuth.getInstance().getUid());
+
+            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if(task.isSuccessful()){
+                        Log.d(TAG, "onComplete: successfully get the user details");
+
+                        User user = task.getResult().toObject(User.class);
+                        mUserLocation.setUser(user);
+//                        ((UserClient)getApplicationContext()).setUser(user);
+                        getLastKnownLocation();
+                    }
+                }
+            });
+        }
+        else{
+            getLastKnownLocation();
+        }
+    }
+
+    private void saveUserLocation(){
+
+        if(mUserLocation != null){
+            DocumentReference locationRef = mDb.
+                    collection(getString(R.string.collection_user_locations))
+                    .document(FirebaseAuth.getInstance().getUid());
+
+            locationRef.set(mUserLocation).addOnCompleteListener(new OnCompleteListener<Void>() {
+                @Override
+                public void onComplete(@NonNull Task<Void> task) {
+                    if(task.isSuccessful()){
+                        Log.d(TAG, "saveUserLocation: \ninserted user location into database." +
+                                "\n latitude: " + mUserLocation.getGeo_point().getLatitude() +
+                                "\n longitude: " + mUserLocation.getGeo_point().getLongitude());
+                    }
+                }
+            });
+        }
+    }
+
     private void getLastKnownLocation(){
-        Log.d(TAG, "getLastLocation: called");
+        Log.d(TAG, "getLastKnownLocation: called.");
+
         mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
             public void onComplete(@NonNull Task<Location> task) {
                 if(task.isSuccessful()){
                     Location location = task.getResult();
                     GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                    Log.d(TAG, "onComplete: latitude:" + location.getLatitude());
-                    Log.d(TAG, "onComplete: longitude:" + location.getLongitude());
+                    Log.d(TAG, "onComplete: latitude: " + geoPoint.getLatitude());
+                    Log.d(TAG, "onComplete: longitude: " + geoPoint.getLongitude());
 
+                    mUserLocation.setGeo_point(geoPoint);
+                    mUserLocation.setTimeStamp(null);
+                    saveUserLocation();
+//                    startLocationService();
                 }
             }
         });
@@ -118,17 +178,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getLocationPermission() {
-        /*
-         * Request location permission, so that we can get the location of the
-         * device. The result of the permission request is handled by a callback,
-         * onRequestPermissionsResult.
-         */
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
                 android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mLocationPermissionGranted = true;
 //            getChatrooms(); add a method on continue the app usage bitches
-            getLastKnownLocation();
+            getUserDetails();
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
@@ -179,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             case PERMISSIONS_REQUEST_ENABLE_GPS: {
                 if(mLocationPermissionGranted){
 //                    getChatrooms(); insert method to continue the use of the app
-                    getLastKnownLocation();
+                    getUserDetails();
 
                 }
                 else{
@@ -196,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
         if(checkMapServices()) {
             if(mLocationPermissionGranted){
 //                create method to continue the app
-                getLastKnownLocation();
+                getUserDetails();
             }
             else {
                 getLocationPermission();
@@ -206,19 +261,19 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View view) {
         switch (view.getId()){
-
-            case R.id.Register_Button:
-                intent = new Intent(this, Registration.class);
+            case R.id.Register_Button:{
+                Intent intent = new Intent(MainActivity.this, Registration.class);
                 startActivity(intent);
                 break;
+            }
 
-            case R.id.Login_Button:
-//                intent = new Intent(this,Deaf_Activity.class);
-//                startActivity(intent);
-                signIn();
+            case R.id.Login_Button:{
+//                signIn();
+                Intent intent = new Intent (this, Deaf_Activity.class);
+                startActivity(intent);
                 break;
+            }
         }
-
     }
 
 //    firebase stuffs
@@ -310,6 +365,4 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "You didn't fill in all the fields.", Toast.LENGTH_SHORT).show();
         }
     }
-
-
 }

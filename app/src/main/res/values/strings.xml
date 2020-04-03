@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">CPT</string>
     <string name="username">Username</string>
-    <string name="google_map_api_key">AIzaSyCowIGuoET4xE0V_AHYk6IYzuU2XyarqFQ</string>
+    <string name="google_map_api_key">AIzaSyCoRQGIfMZVcVL3drOOEQb4LUtPEyu4yPQ</string>
 
 
     <!-- Strings related to login -->
