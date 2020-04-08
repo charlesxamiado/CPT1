@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_deaf_);
 
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -74,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
 
 //        sign in shits
         mPassword = findViewById(R.id.password);
-        setupFirebaseAuth();
         hideSoftKeyboard();
     }
 
@@ -259,110 +258,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onClick(View view) {
-        switch (view.getId()){
-            case R.id.Register_Button:{
-                Intent intent = new Intent(MainActivity.this, Registration.class);
-                startActivity(intent);
-                break;
-            }
-
-            case R.id.Login_Button:{
-//                signIn();
-                Intent intent = new Intent (this, Deaf_Activity.class);
-                startActivity(intent);
-                break;
-            }
-        }
-    }
-
 //    firebase stuffs
     private void hideSoftKeyboard(){
     this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-}
-
-    private void setupFirebaseAuth(){
-        Log.d(TAG, "setupFirebaseAuth: started.");
-
-        mAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
-                    Toast.makeText(MainActivity.this, "Authenticated with: " + user.getEmail(), Toast.LENGTH_SHORT).show();
-
-//                    FirebaseFirestore db = FirebaseFirestore.getInstance();
-//                    FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-//                            .setTimestampsInSnapshotsEnabled(true)
-//                            .build();
-//                    db.setFirestoreSettings(settings);
-//
-//                    DocumentReference userRef = db.collection(getString(R.string.collection_users))
-//                            .document(user.getUid());
-//
-//                    userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-//                        @Override
-//                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-//                            if(task.isSuccessful()){
-//                                Log.d(TAG, "onComplete: successfully set the user client.");
-//                                User user = task.getResult().toObject(User.class);
-//                                ((UserClient)(getApplicationContext())).setUser(user);
-//                            }
-//                        }
-//                    });
-
-                    Intent intent = new Intent(MainActivity.this, Deaf_Activity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-
-                } else {
-                    // User is signed out
-                    Log.d(TAG, "onAuthStateChanged:signed_out");
-                }
-                // ...
-            }
-        };
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        FirebaseAuth.getInstance().addAuthStateListener(mAuthListener);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        if (mAuthListener != null) {
-            FirebaseAuth.getInstance().removeAuthStateListener(mAuthListener);
-        }
-    }
-
-    private void signIn(){
-        //check if the fields are filled out
-        if(!isEmpty(mEmail.getText().toString())
-                && !isEmpty(mPassword.getText().toString())){
-            Log.d(TAG, "onClick: attempting to authenticate.");
-
-
-            FirebaseAuth.getInstance().signInWithEmailAndPassword(mEmail.getText().toString(),
-                    mPassword.getText().toString())
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-
-
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(MainActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }else{
-            Toast.makeText(MainActivity.this, "You didn't fill in all the fields.", Toast.LENGTH_SHORT).show();
-        }
-    }
 }
