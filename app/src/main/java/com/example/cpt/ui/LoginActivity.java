@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.cpt.R;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -29,7 +28,7 @@ public class LoginActivity extends AppCompatActivity implements
     private static final String TAG = "LoginActivity";
 
     //Firebase
-    private FirebaseAuth.AuthStateListener mAuthListener;
+    private FirebaseAuth mAuthListener;
 
     // widgets
     private EditText mEmail, mPassword;
@@ -39,11 +38,11 @@ public class LoginActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mEmail = findViewById(R.id.email);
-        mPassword = findViewById(R.id.password);
+        mEmail = findViewById(R.id.login_email);
+        mPassword = findViewById(R.id.login_password);
         mProgressBar = findViewById(R.id.progressBar);
+        mAuthListener = FirebaseAuth.getInstance();
 
-        setupFirebaseAuth();
         findViewById(R.id.Login_Button).setOnClickListener(this);
         findViewById(R.id.Register_Button).setOnClickListener(this);
 
@@ -71,72 +70,50 @@ public class LoginActivity extends AppCompatActivity implements
     /*
         ----------------------------- Firebase setup ---------------------------------
      */
-    private void setupFirebaseAuth(){
-        Log.d(TAG, "setupFirebaseAuth: started.");
-
-        mAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
-                    Toast.makeText(LoginActivity.this, "Authenticated with: " + user.getEmail(), Toast.LENGTH_SHORT).show();
-
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-
-                } else {
-                    // User is signed out
-                    Log.d(TAG, "onAuthStateChanged:signed_out");
-                }
-                // ...
-            }
-        };
-    }
-
     @Override
     public void onStart() {
         super.onStart();
-        FirebaseAuth.getInstance().addAuthStateListener(mAuthListener);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        if (mAuthListener != null) {
-            FirebaseAuth.getInstance().removeAuthStateListener(mAuthListener);
-        }
     }
 
-    private void signIn(){
-        //check if the fields are filled out
-        if(!isEmpty(mEmail.getText().toString())
-                && !isEmpty(mPassword.getText().toString())){
-            Log.d(TAG, "onClick: attempting to authenticate.");
+    private void signIn(String email, String password) {
+        Log.d(TAG, "signIn:" + email);
 
-            showDialog();
-
-            FirebaseAuth.getInstance().signInWithEmailAndPassword(mEmail.getText().toString(),
-                    mPassword.getText().toString())
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-
-                            hideDialog();
-
+        // [START sign_in_with_email]
+        mAuthListener.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            // Sign in success, update UI with the signed-in user's information
+                            Log.d(TAG, "signInWithEmail:success");
+                            FirebaseUser user = mAuthListener.getCurrentUser();
+                        } else {
+                            // If sign in fails, display a message to the user.
+                            Log.w(TAG, "signInWithEmail:failure", task.getException());
+                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                    Toast.LENGTH_SHORT).show();
+                            // [START_EXCLUDE]
+                            // [END_EXCLUDE]
                         }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
-                    hideDialog();
-                }
-            });
-        }else{
-            Toast.makeText(LoginActivity.this, "You didn't fill in all the fields.", Toast.LENGTH_SHORT).show();
-        }
+
+                        // [START_EXCLUDE]
+                        if (!task.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                        }
+                        else {
+                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        }
+                        // [END_EXCLUDE]
+                    }
+                });
+        // [END sign_in_with_email]
     }
 
     @Override
@@ -149,7 +126,7 @@ public class LoginActivity extends AppCompatActivity implements
             }
 
             case R.id.Login_Button:{
-                signIn();
+                signIn(mEmail.getText().toString(), mPassword.getText().toString());
                 break;
             }
         }

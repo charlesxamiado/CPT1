@@ -29,7 +29,9 @@
         android:layout_height="60dp"
         android:background="#ffffff"
         android:textSize="48dp"
-        android:hint="Email"/>
+        android:hint="Email"
+        android:id="@+id/login_email"
+        android:inputType="textEmailAddress"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -44,7 +46,9 @@
         android:layout_height="60dp"
         android:background="#ffffff"
         android:textSize="48dp"
-        android:hint="Password" />
+        android:hint="Password"
+        android:id="@+id/login_password"
+        android:inputType="textPassword"/>
     
     <Button
         android:id="@+id/Login_Button"
